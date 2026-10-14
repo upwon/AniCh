@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
+import 'package:xs/src/offline/download_manager.dart';
+import 'package:xs/src/offline/source.dart';
 
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +49,8 @@ void main() async {
   DanmakuSettingsStorage.init();
   // 初始化弹幕屏蔽词
   DanmakuShieldStorage.init();
+  await DownloadManager.instance.init();
+  DownloadManager.instance.resolver = resolveDownload;
   runApp(const MyApp());
 }
 

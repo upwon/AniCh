@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:xs/src/pages/download/player.dart';
 import 'package:xs/src/middlewares/auth.dart';
 import 'package:xs/src/pages/account/change_password.dart';
 import 'package:xs/src/pages/account/login.dart';
@@ -84,5 +85,6 @@ class AppRoute {
         name: '/thread_collection', page: () => const ThreadCollectionPage()),
     // 离线缓存
     GetPage(name: '/download', page: () => const DownloadPage()),
+    GetPage(name: '/offline_player', page: () => const OfflinePlayerPage()),
   ];
 }

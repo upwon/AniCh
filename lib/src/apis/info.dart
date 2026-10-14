@@ -10,7 +10,7 @@ final api = Dio(BaseOptions(
 class InfoApi {
   // 最新
   static Future<Response> checkUpdate() async {
-    const url = 'https://api.github.com/repos/Sle2p/xs.cx/releases/latest';
+    const url = 'https://api.github.com/repos/upwon/AniCh/releases/latest';
     final response =
         await api.get(url, options: Options(responseType: ResponseType.json));
     return response;

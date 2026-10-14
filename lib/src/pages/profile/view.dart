@@ -236,13 +236,13 @@ class ProfileView extends StatelessWidget {
                             },
                           ),
                           AppStyle.divider,
-                          // SettingsAction(
-                          //   title: '离线缓存',
-                          //   onTap: () {
-                          //     Get.toNamed('/download');
-                          //   },
-                          // ),
-                          // AppStyle.divider,
+                          SettingsAction(
+                            title: '离线缓存',
+                            onTap: () {
+                              Get.toNamed('/download');
+                            },
+                          ),
+                          AppStyle.divider,
                           SettingsAction(
                             title: '追番列表',
                             onTap: () {

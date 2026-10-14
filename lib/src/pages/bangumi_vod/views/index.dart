@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xs/src/offline/selection.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:xs/src/pages/bangumi_vod/controller.dart';
@@ -67,6 +68,21 @@ class BangumiVodIndexView extends StatelessWidget {
                           maxLines: 3,
                           style: const TextStyle(fontSize: 14),
                         ),
+                        Row(children: [
+                          FilledButton.tonalIcon(
+                            icon: const Icon(Icons.download_outlined),
+                            label: const Text('缓存'),
+                            onPressed: () => showDownloadSelection(context,
+                              id: controller.id, data: controller.data,
+                              episodes: controller.episodes,
+                              initialEpisode: controller.episode,
+                              initialLine: controller.currentLineIndex,
+                              lines: controller.playUrls.toList()),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton(onPressed: () => Get.toNamed('/download'),
+                            child: const Text('查看缓存')),
+                        ]),
                         Container(
                           padding: const EdgeInsets.only(top: 5, bottom: 5),
                           child: const Row(

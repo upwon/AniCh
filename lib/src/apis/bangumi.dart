@@ -77,7 +77,8 @@ class BangumiApi {
   static Future<Response> getBangumiEpisodeVod(
       {required int id, required int episode}) async {
     final url = '/vod/$id/$episode';
-    final response = await api.get(url);
+    final response =
+        await api.get(url, options: Options(responseType: ResponseType.bytes));
     return response;
   }
 

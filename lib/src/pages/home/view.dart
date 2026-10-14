@@ -163,6 +163,10 @@ class HomePage extends StatelessWidget {
                           title: '番剧',
                           onTap: () => Get.toNamed('/bangumi')),
                       NavItem(
+                          icon: Icons.download_for_offline,
+                          title: '缓存',
+                          onTap: () => Get.toNamed('/download')),
+                      NavItem(
                           icon: Icons.person,
                           title: '我的',
                           onTap: () => Get.toNamed('/profile')),

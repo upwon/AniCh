@@ -1,0 +1,84 @@
+name: AniCh Offline APK
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: stable
+          cache: true
+      - name: Resolve dependencies and restore Android wrapper
+        run: |
+          flutter pub get
+          flutter create --platforms=android --project-name=xs /tmp/anich-wrapper
+          cp /tmp/anich-wrapper/android/gradlew android/gradlew
+          cp /tmp/anich-wrapper/android/gradle/wrapper/gradle-wrapper.jar android/gradle/wrapper/gradle-wrapper.jar
+          chmod +x android/gradlew
+      - name: Analyze offline feature
+        run: dart analyze lib/src/offline lib/src/pages/download/player.dart lib/src/pages/download/view.dart
+      - name: Verify offline downloads
+        run: flutter test test/offline_download_test.dart
+      - name: Configure fixed release signing
+        if: github.event_name != 'pull_request'
+        env:
+          BASE_64_SIGNING_KEY: ${{ secrets.BASE_64_SIGNING_KEY }}
+          LOCAL_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
+        run: |
+          test -n "$BASE_64_SIGNING_KEY" && test -n "$LOCAL_PROPERTIES" || { echo '::error::Fixed signing secrets are required'; exit 1; }
+          printf '%s' "$BASE_64_SIGNING_KEY" | base64 -d > android/app/release_keystore.jks
+          printf '%s\n' "$LOCAL_PROPERTIES" > android/key.properties
+      - name: Build signed APKs
+        if: github.event_name != 'pull_request'
+        run: |
+          flutter build apk --release --split-per-abi
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk dist/AniCh-Offline-arm64.apk
+          cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk dist/AniCh-Offline-armv7.apk
+          cp build/app/outputs/flutter-apk/app-x86_64-release.apk dist/AniCh-Offline-x86_64.apk
+      - name: Verify signing and package identity
+        if: github.event_name != 'pull_request'
+        run: |
+          BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -maxdepth 1 -mindepth 1 -type d | sort -V | tail -1)
+          "$BUILD_TOOLS/apksigner" verify --print-certs dist/AniCh-Offline-arm64.apk | tee dist/signing-certificate.txt
+          "$BUILD_TOOLS/aapt" dump badging dist/AniCh-Offline-arm64.apk | head -1 | tee dist/package-info.txt
+          grep "io.github.upwon.anich.offline" dist/package-info.txt
+          ACTUAL=$(awk '/certificate SHA-256 digest:/ {print $NF; exit}' dist/signing-certificate.txt | tr 'A-F' 'a-f' | tr -d ':')
+          test "$ACTUAL" = "d6660edec3cfd4d5ab2c35c5bcbfeb406a4e0cc332a00bf34c01fc61707de44d"
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
+        with:
+          name: AniCh-Offline-APKs
+          path: dist/
+          if-no-files-found: error
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --title "AniCh Offline $GITHUB_REF_NAME" --notes-file docs/release-notes.md --verify-tag
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/app/release_keystore.jks android/key.properties

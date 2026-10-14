@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="像宿"
+        android:label="AniCh 离线版"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
