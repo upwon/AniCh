@@ -74,11 +74,20 @@ jobs:
           path: dist/
           if-no-files-found: error
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" dist/* --title "AniCh Offline $GITHUB_REF_NAME" --notes-file docs/release-notes.md --verify-tag
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            RELEASE_TAG="$GITHUB_REF_NAME"
+          else
+            RELEASE_TAG="v$(sed -n 's/^version: \([^+]*\).*/\1/p' pubspec.yaml)"
+          fi
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists; keeping its published assets. Increment version to publish a new release."
+          else
+            gh release create "$RELEASE_TAG" dist/* --target "$GITHUB_SHA" --title "AniCh Offline $RELEASE_TAG" --notes-file docs/release-notes.md
+          fi
       - name: Remove signing material
         if: always()
         run: rm -f android/app/release_keystore.jks android/key.properties

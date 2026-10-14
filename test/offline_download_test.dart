@@ -23,7 +23,6 @@ DownloadTask task(String url, {int episode = 1}) => DownloadTask(
     url: url);
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
   test(
       'HLS localizes encrypted keys, fMP4 init, repeated byte ranges and query URLs',
       () {

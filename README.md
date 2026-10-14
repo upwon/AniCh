@@ -17,7 +17,7 @@
 
 ## GitHub 构建与签名
 
-工作流 `.github/workflows/android.yml` 使用 Flutter 3.24.5 与 JDK 17，运行离线下载测试后构建三个 ABI 的 Release APK。main 提交会产出 Actions artifact；推送 `v*` 标签会自动发布 Release。
+工作流 `.github/workflows/android.yml` 使用 Flutter 3.24.5 与 JDK 17，运行离线下载测试后构建三个 ABI 的 Release APK。main 提交会产出 Actions artifact，并按 pubspec.yaml 版本发布新 Release；推送 `v*` 标签也可发布。已存在的 Release 不覆盖，发布更新需递增版本号。
 
 沿用搜索直达与 ytdlnis-pro 的 GitHub Secrets 配置方式，**为此应用使用单独固定签名**：
 
