@@ -9,14 +9,6 @@ rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
-subprojects {
-    project.evaluationDependsOn(":app")
-}
-
-tasks.register("clean", Delete) {
-    delete rootProject.buildDir
-}
-
 // Older plugins (notably image_gallery_saver) compile against API 30 while
 // modern AndroidX resources reference API 31+ attributes such as lStar.
 subprojects {
@@ -26,3 +18,12 @@ subprojects {
         }
     }
 }
+
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
+
