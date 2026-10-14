@@ -28,7 +28,7 @@
 
 ## 验证
 
-`flutter test test/offline_download_test.dart` 测试本地 HTTP 服务上的文件下载、M3U8 本地化、暂停续传、重启恢复、失败任务与删除。测试不依赖第三方番剧源。
+`flutter test test/offline_download_test.dart test/offline_media_test.dart`（第二项需要 ffmpeg） 测试本地 HTTP 服务上的文件下载、M3U8 本地化、暂停续传、重启恢复、失败任务与删除。测试不依赖第三方番剧源。额外使用真实 AES-128 视频验证下载后完整解码；解码时仅允许 file/crypto/data 协议，明确禁止联网。
 
 ---
 

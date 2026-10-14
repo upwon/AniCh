@@ -51,15 +51,26 @@ HlsPlan localizeHls(String text, Uri base) {
   }
   final resources = <HlsResource>[];
   final names = <String, String>{};
-  String local(String reference) {
+  String local(String reference, {bool key = false, bool init = false}) {
     final uri = base.resolve(reference);
     if (uri.scheme != 'http' && uri.scheme != 'https') {
       throw const FormatException('不支持该资源地址');
     }
     return names.putIfAbsent(uri.toString(), () {
-      final ext =
-          RegExp(r'\.[a-zA-Z0-9]{1,5}$').firstMatch(uri.path)?.group(0) ??
-              '.bin';
+      final originalExt = RegExp(r'\.[a-zA-Z0-9]{1,5}$')
+          .firstMatch(uri.path)
+          ?.group(0)
+          ?.toLowerCase();
+      const mediaExtensions = {'.ts', '.mp4', '.m4s', '.aac', '.m4a', '.mp3'};
+      // Local HLS readers apply their media extension allowlist to keys too.
+      // Use accepted suffixes without relaxing the decoder security allowlist.
+      final ext = key
+          ? '.ts'
+          : init
+              ? '.mp4'
+              : mediaExtensions.contains(originalExt)
+                  ? originalExt!
+                  : '.ts';
       final name = 'part_${resources.length}$ext';
       resources.add(HlsResource(uri.toString(), name));
       return name;
@@ -87,7 +98,9 @@ HlsPlan localizeHls(String text, Uri base) {
           throw const FormatException('该播放列表格式暂不支持缓存，请换线路');
         }
         line = line.replaceAllMapped(
-            RegExp(r'URI="([^"]+)"'), (m) => 'URI="${local(m.group(1)!)}"');
+            RegExp(r'URI="([^"]+)"'),
+            (m) =>
+                'URI="${local(m.group(1)!, key: line.startsWith('#EXT-X-KEY:'), init: line.startsWith('#EXT-X-MAP:'))}"');
         if (RegExp(r'URI="https?://').hasMatch(line)) {
           throw const FormatException('存在无法本地化的资源');
         }

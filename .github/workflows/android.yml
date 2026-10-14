@@ -7,6 +7,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: anich-offline-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -38,8 +42,10 @@ jobs:
           chmod +x android/gradlew
       - name: Analyze offline feature
         run: dart analyze lib/src/offline lib/src/pages/download/player.dart lib/src/pages/download/view.dart
-      - name: Verify offline downloads
-        run: flutter test test/offline_download_test.dart
+      - name: Install media verification tool
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+      - name: Verify offline downloads and encrypted media decoding
+        run: flutter test test/offline_download_test.dart test/offline_media_test.dart
       - name: Configure fixed release signing
         if: github.event_name != 'pull_request'
         env:
