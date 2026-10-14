@@ -40,8 +40,9 @@ class DownloadManager extends ChangeNotifier {
       tasks.addAll(
           list.map((j) => DownloadTask.fromJson(Map<String, dynamic>.from(j))));
       for (final t in tasks) {
-        if (!RegExp(r'^\d+_\d+_\d+$').hasMatch(t.key))
+        if (!RegExp(r'^\d+_\d+_\d+$').hasMatch(t.key)) {
           throw const FormatException('无效缓存索引');
+        }
         if (t.status == DownloadStatus.downloading ||
             t.status == DownloadStatus.queued) {
           t.status = DownloadStatus.paused;
@@ -130,6 +131,12 @@ class DownloadManager extends ChangeNotifier {
     });
   }
 
+  void _check(CancelToken token) {
+    if (token.isCancelled) {
+      throw token.cancelError!;
+    }
+  }
+
   Future<void> _run(DownloadTask t, CancelToken token) async {
     try {
       t.status = DownloadStatus.downloading;
@@ -145,11 +152,12 @@ class DownloadManager extends ChangeNotifier {
                 jsonDecode(await planFile.readAsString())));
       } else {
         if (resolver != null) t.url = await resolver!(t);
-        token.throwIfCancellationRequested();
+        _check(token);
         if (t.url.isEmpty) throw const FormatException('没有可用的播放地址');
         var uri = Uri.parse(t.url);
-        if (!['http', 'https'].contains(uri.scheme))
+        if (!['http', 'https'].contains(uri.scheme)) {
           throw const FormatException('不支持该播放地址');
+        }
         // A small probe detects extensionless HLS without loading a video in RAM.
         final probe = await dio.get<ResponseBody>(uri.toString(),
             cancelToken: token,
@@ -178,8 +186,9 @@ class DownloadManager extends ChangeNotifier {
                 options: Options(
                     responseType: ResponseType.plain, headers: t.headers));
             final text = response.data!;
-            if (text.length > 4 * 1024 * 1024)
+            if (text.length > 4 * 1024 * 1024) {
               throw const FormatException('播放列表过大');
+            }
             // Resolve relative URIs against the final redirected playlist URL.
             final base = response.realUri;
             final variant = hlsVariant(text, base);
@@ -201,7 +210,7 @@ class DownloadManager extends ChangeNotifier {
           await _file(t.url, File(mediaPath(t)), t, token, resume: true);
         }
       }
-      token.throwIfCancellationRequested();
+      _check(token);
       t.status = DownloadStatus.complete;
       t.error = '';
     } catch (e) {
@@ -224,7 +233,7 @@ class DownloadManager extends ChangeNotifier {
     t.segmentsDone = 0;
     t.received = 0;
     for (final r in resources) {
-      token.throwIfCancellationRequested();
+      _check(token);
       final file = File('${folder(t)}/${r['name']}');
       if (!await file.exists() || await file.length() == 0) {
         await _file(r['url'], file, t, token);
@@ -285,7 +294,7 @@ class DownloadManager extends ChangeNotifier {
     var lastNotice = DateTime.now();
     try {
       await for (final chunk in response.data!.stream) {
-        token.throwIfCancellationRequested();
+        _check(token);
         sink.add(chunk);
         count += chunk.length;
         if (resume) task.received = offset + count;
@@ -298,7 +307,7 @@ class DownloadManager extends ChangeNotifier {
     } finally {
       await sink.close();
     }
-    token.throwIfCancellationRequested();
+    _check(token);
     if (count == 0 || (size >= 0 && count != size)) {
       throw const FormatException('下载内容不完整，请重试');
     }

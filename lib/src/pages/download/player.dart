@@ -31,15 +31,17 @@ class _OfflinePlayerPageState extends State<OfflinePlayerPage> {
   Future<void> _open() async {
     try {
       final path = DownloadManager.instance.mediaPath(task);
-      if (!await File(path).exists())
+      if (!await File(path).exists()) {
         throw const FileSystemException('缓存文件已丢失，请重新下载');
+      }
       if (!mounted) return;
       errorSubscription = player.stream.error.listen((message) {
         if (mounted) setState(() => error = '播放失败：$message');
       });
       await player.open(Media(path), play: false);
-      if (task.position > 0)
+      if (task.position > 0) {
         await player.seek(Duration(seconds: task.position));
+      }
       positionSubscription = player.stream.position.listen((position) {
         if ((position.inSeconds - task.position).abs() >= 5) {
           task.position = position.inSeconds;

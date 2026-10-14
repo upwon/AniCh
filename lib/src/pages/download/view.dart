@@ -60,9 +60,10 @@ class DownloadPage extends StatelessWidget {
   }
 
   Widget _list(BuildContext context, List<DownloadTask> tasks) {
-    if (tasks.isEmpty)
+    if (tasks.isEmpty) {
       return const Center(
           child: Text('暂无缓存\n在播放页点击“缓存”选择剧集', textAlign: TextAlign.center));
+    }
     final groups = <int, List<DownloadTask>>{};
     for (final t in tasks) {
       groups.putIfAbsent(t.bangumiId, () => []).add(t);
