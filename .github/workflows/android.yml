@@ -55,6 +55,7 @@ jobs:
           test -n "$BASE_64_SIGNING_KEY" && test -n "$LOCAL_PROPERTIES" || { echo '::error::Fixed signing secrets are required'; exit 1; }
           printf '%s' "$BASE_64_SIGNING_KEY" | base64 -d > android/app/release_keystore.jks
           printf '%s\n' "$LOCAL_PROPERTIES" > android/key.properties
+      - uses: gradle/actions/setup-gradle@v4
       - name: Build signed APKs
         if: github.event_name != 'pull_request'
         run: |

@@ -13,6 +13,11 @@ class InfoApi {
     const url = 'https://api.github.com/repos/upwon/AniCh/releases/latest';
     final response =
         await api.get(url, options: Options(responseType: ResponseType.json));
+    // Release titles are descriptive; tag_name is the version used for updates.
+    final tag = response.data['tag_name'];
+    if (tag is String) {
+      response.data['name'] = tag.replaceFirst(RegExp(r'^v'), '');
+    }
     return response;
   }
 }

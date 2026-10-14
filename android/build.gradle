@@ -16,3 +16,13 @@ subprojects {
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
+
+// Older plugins (notably image_gallery_saver) compile against API 30 while
+// modern AndroidX resources reference API 31+ attributes such as lStar.
+subprojects {
+    afterEvaluate { project ->
+        if (project.hasProperty("android")) {
+            project.android.compileSdkVersion 34
+        }
+    }
+}
