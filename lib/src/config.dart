@@ -8,7 +8,9 @@ late PackageInfo packageInfo;
 class AppConfig {
   static RxString version = ''.obs;
   static RxString ua = ''.obs;
-  static const baseUrl = 'https://api.emmmm.eu.org';
+  // This host is shipped as a working API endpoint in the official AniCh app.
+  // The old api.emmmm.eu.org endpoint currently fails TLS for API requests.
+  static const baseUrl = 'https://anich.sends.eu.org';
   static const bilibiliApiProxyUrl = 'https://bili-dm.emmmm.eu.org';
   static const qqVideoApiUrl = 'https://dm.video.qq.com';
 

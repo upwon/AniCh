@@ -10,6 +10,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:xs/protobuf/bangumi.pb.dart';
 import 'package:xs/protobuf/danmaku.pb.dart';
 import 'package:xs/src/apis/bangumi.dart';
+import 'package:xs/src/offline/source.dart' show parseVodResponse;
 import 'package:xs/src/pages/bangumi_detail/models/bangumi_detail_model.dart';
 import 'package:xs/src/pages/bangumi_vod/models/qq_video_model.dart';
 import 'package:xs/src/pages/settings/storage/play_history_storage.dart';
@@ -558,7 +559,7 @@ class BangumiVodPageController extends PlayerController
     final response =
         await BangumiApi.getBangumiEpisodeVod(id: id, episode: episode);
     if (response.statusCode == 200) {
-      vod_ data = vod_.fromBuffer(response.data.cast<int>());
+      vod_ data = parseVodResponse(response.data);
       playUrls.value = data.data;
       currentLineIndex = 0;
       currentLineInfo.value = '线路${currentLineIndex + 1}';

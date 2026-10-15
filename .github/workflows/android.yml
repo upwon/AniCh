@@ -45,7 +45,7 @@ jobs:
       - name: Install media verification tool
         run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
       - name: Verify offline downloads and encrypted media decoding
-        run: flutter test test/offline_download_test.dart test/offline_media_test.dart
+        run: flutter test test/vod_response_test.dart test/offline_download_test.dart test/offline_media_test.dart
       - name: Configure fixed release signing
         if: github.event_name != 'pull_request'
         env:
