@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 import 'package:xs/src/offline/download_manager.dart';
+import 'package:xs/src/offline/danmaku_source.dart';
 import 'package:xs/src/offline/source.dart';
 
 import 'package:dynamic_color/dynamic_color.dart';
@@ -51,6 +52,7 @@ void main() async {
   DanmakuShieldStorage.init();
   await DownloadManager.instance.init();
   DownloadManager.instance.resolver = resolveDownload;
+  DownloadManager.instance.danmakuResolver = fetchEpisodeDanmaku;
   runApp(const MyApp());
 }
 

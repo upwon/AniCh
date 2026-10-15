@@ -112,6 +112,10 @@ class DownloadPage extends StatelessWidget {
             '${labels[t.status]} · 线路${t.line + 1} · ${formatBytes(t.received)}'),
         if (t.segmentsTotal > 0)
           Text('分片 ${t.segmentsDone}/${t.segmentsTotal}'),
+        if (complete)
+          Text(t.danmakuCached
+              ? '弹幕已缓存，可离线观看'
+              : '弹幕未缓存，可点右侧字幕按钮补充'),
         if (t.status == DownloadStatus.failed)
           Text(t.error,
               style: TextStyle(color: Theme.of(context).colorScheme.error)),
@@ -122,6 +126,24 @@ class DownloadPage extends StatelessWidget {
                   value: t.progress ?? (active ? null : 0))),
       ]),
       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+        if (complete && !t.danmakuCached)
+          IconButton(
+            tooltip: t.danmakuCaching ? '正在缓存弹幕' : '补充缓存弹幕',
+            onPressed: t.danmakuCaching
+                ? null
+                : () async {
+                    final saved = await manager.cacheDanmaku(t);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(saved ? '弹幕已缓存' : '暂未取得这集的弹幕')));
+                  },
+            icon: t.danmakuCaching
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.subtitles_outlined),
+          ),
         if (!complete)
           IconButton(
               tooltip: active ? '暂停' : '继续／重试',

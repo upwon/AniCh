@@ -3,15 +3,19 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'download_task.dart';
 import 'hls.dart';
 
 typedef ResolveDownload = Future<String> Function(DownloadTask task);
+typedef ResolveDanmaku = Future<List<int>?> Function(DownloadTask task);
 
 /// One durable queue per app. Incomplete files never appear as playable media.
 class DownloadManager extends ChangeNotifier {
   static final instance = DownloadManager();
+  static const _notificationChannel = MethodChannel('io.github.upwon.anich.offline/downloads');
   final Dio dio;
   DownloadManager({Dio? client})
       : dio = client ??
@@ -23,12 +27,15 @@ class DownloadManager extends ChangeNotifier {
   final List<DownloadTask> tasks = [];
   late Directory root;
   ResolveDownload? resolver;
+  ResolveDanmaku? danmakuResolver;
   CancelToken? _token;
   Future<void>? _worker;
   DownloadTask? _active;
   bool _closed = false;
   Future<void> _saving = Future.value();
   Timer? _saveTimer;
+  DateTime _lastNotificationUpdate = DateTime.fromMillisecondsSinceEpoch(0);
+  bool _notificationStarted = false;
 
   Future<void> init({Directory? directory}) async {
     root = directory ??
@@ -52,8 +59,19 @@ class DownloadManager extends ChangeNotifier {
           t.status = DownloadStatus.failed;
           t.error = '本地文件已丢失，请重新缓存';
         }
+        if (t.danmakuCached &&
+            !await File('${folder(t)}/danmaku.pb').exists()) {
+          t.danmakuCached = false;
+        }
+        // Older builds persisted raw transport exceptions, which could contain
+        // temporary signed media URLs. Replace those messages on upgrade.
+        if (t.error.contains('http://') || t.error.contains('https://')) {
+          t.error =
+              '线路连接中断，已保留已下载部分；点重试可续传，或更换线路。';
+        }
       }
     }
+    await save();
     notifyListeners();
   }
 
@@ -61,11 +79,61 @@ class DownloadManager extends ChangeNotifier {
   String mediaPath(DownloadTask t) => '${folder(t)}/${t.media}';
   void changed() {
     notifyListeners();
+    _updateForegroundNotification();
     if (_closed) return;
     _saveTimer ??= Timer(const Duration(milliseconds: 500), () {
       _saveTimer = null;
       unawaited(save());
     });
+  }
+
+  void _updateForegroundNotification() {
+    if (!Platform.isAndroid) return;
+    final pending = tasks
+        .where((t) => t.status == DownloadStatus.downloading ||
+            t.status == DownloadStatus.queued)
+        .toList();
+    if (pending.isEmpty) {
+      if (_notificationStarted) {
+        _notificationStarted = false;
+        unawaited(_invokeNotification('stop'));
+      }
+      return;
+    }
+
+    final now = DateTime.now();
+    final task = pending.first;
+    final isActive = task.status == DownloadStatus.downloading;
+    if (isActive &&
+        now.difference(_lastNotificationUpdate).inMilliseconds < 1000) {
+      return;
+    }
+    _lastNotificationUpdate = now;
+    final downloaded = (task.received / (1024 * 1024)).toStringAsFixed(1);
+    final total = task.total > 0
+        ? ' / ${(task.total / (1024 * 1024)).toStringAsFixed(1)} MB'
+        : ' MB';
+    final progress = task.total > 0
+        ? (task.received * 100 ~/ task.total).clamp(0, 100)
+        : 0;
+    _notificationStarted = true;
+    unawaited(_invokeNotification('update', {
+      'title': isActive ? '正在离线缓存' : '等待缓存',
+      'text': '${task.title} · ${task.episodeTitle} · $downloaded$total',
+      'progress': progress,
+      'indeterminate': task.total <= 0,
+    }));
+  }
+
+  Future<void> _invokeNotification(String method,
+      [Map<String, Object?>? args]) async {
+    try {
+      await _notificationChannel.invokeMethod<void>(method, args);
+    } on PlatformException {
+      // A denied or unavailable notification must not interrupt a download.
+    } on MissingPluginException {
+      // Desktop builds and tests do not register the Android service channel.
+    }
   }
 
   Future<void> save() {
@@ -80,11 +148,42 @@ class DownloadManager extends ChangeNotifier {
 
   Future<bool> enqueue(DownloadTask task) async {
     if (tasks.any((t) => t.key == task.key)) return false;
+    if (Platform.isAndroid) {
+      // Notification permission is requested at the moment the user starts a download.
+      // A denial must not prevent caching while the app remains open.
+      try {
+        await Permission.notification.request();
+      } catch (_) {}
+    }
     tasks.add(task);
     await save();
     changed();
     _pump();
     return true;
+  }
+
+  Future<bool> cacheDanmaku(DownloadTask task) async {
+    if (danmakuResolver == null || task.danmakuCached) return task.danmakuCached;
+    if (task.danmakuCaching) return false;
+    task.danmakuCaching = true;
+    changed();
+    try {
+      final bytes = await danmakuResolver!(task);
+      if (bytes == null || bytes.isEmpty) return false;
+      final target = File('${folder(task)}/danmaku.pb');
+      final tmp = File('${target.path}.tmp');
+      await tmp.writeAsBytes(bytes, flush: true);
+      if (await target.exists()) await target.delete();
+      await tmp.rename(target.path);
+      task.danmakuCached = true;
+      await save();
+      return true;
+    } catch (_) {
+      return false;
+    } finally {
+      task.danmakuCaching = false;
+      changed();
+    }
   }
 
   Future<void> resume(DownloadTask t) async {
@@ -210,20 +309,41 @@ class DownloadManager extends ChangeNotifier {
           await _file(t.url, File(mediaPath(t)), t, token, resume: true);
         }
       }
+      // Keep video success independent from the optional danmaku API.
+      await cacheDanmaku(t);
       _check(token);
       t.status = DownloadStatus.complete;
       t.error = '';
     } catch (e) {
       if (t.status != DownloadStatus.paused) {
         t.status = DownloadStatus.failed;
-        t.error = e is DioException
-            ? '网络或线路错误，请重试或换线路（${e.response?.statusCode ?? e.type.name}）'
-            : e.toString();
+        t.error = _friendlyError(e);
       }
     } finally {
       await save();
       changed();
     }
+  }
+
+  String _friendlyError(Object error) {
+    if (error is DioException) {
+      final cause = error.error;
+      final interrupted = cause is HttpException &&
+          cause.message.toLowerCase().contains('connection closed');
+      if (interrupted || error.type == DioExceptionType.connectionError) {
+        return '线路连接中断，已保留已下载部分；点重试可续传，或更换线路。';
+      }
+      final status = error.response?.statusCode;
+      return status == null
+          ? '网络或线路错误，已保留已下载部分；点重试可续传，或更换线路。'
+          : '线路返回 HTTP $status，点重试可续传，或更换线路。';
+    }
+    if (error is HttpException || error is SocketException) {
+      return '线路连接中断，已保留已下载部分；点重试可续传，或更换线路。';
+    }
+    if (error is FormatException) return error.message;
+    // Avoid persisting exception strings that may include signed media URLs.
+    return '缓存失败，请重试或更换线路。';
   }
 
   Future<void> _hls(

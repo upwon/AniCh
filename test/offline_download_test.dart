@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xs/protobuf/danmaku.pb.dart';
 import 'package:xs/src/offline/download_manager.dart';
 import 'package:xs/src/offline/download_task.dart';
 import 'package:xs/src/offline/hls.dart';
@@ -201,13 +202,31 @@ video.ts?token=1
     await waitFor(() => t.status == DownloadStatus.failed);
     expect(await File(manager.mediaPath(t)).exists(), false);
   });
+  test('saves fetched episode danmaku alongside cached media', () async {
+    final t = task('$base/video');
+    await Directory(manager.folder(t)).create(recursive: true);
+    final encoded = danmaku_(data: [
+      data_(text: '离线弹幕', color: '#ffffff', time: 12.5, type: 1)
+    ]).writeToBuffer();
+    manager.danmakuResolver = (_) async => encoded;
+
+    expect(await manager.cacheDanmaku(t), true);
+    expect(t.danmakuCached, true);
+    final restored = danmaku_.fromBuffer(
+        await File('${manager.folder(t)}/danmaku.pb').readAsBytes());
+    expect(restored.data.single.text, '离线弹幕');
+  });
   test('interrupted jobs restore paused, not automatically downloading',
       () async {
-    await File('${dir.path}/tasks.json').writeAsString(jsonEncode(
-        [(task('$base/slow')..status = DownloadStatus.downloading).toJson()]));
+    final interrupted = task('$base/slow')
+      ..status = DownloadStatus.downloading
+      ..error = 'HttpException: connection closed at https://cdn.test/signed';
+    await File('${dir.path}/tasks.json')
+        .writeAsString(jsonEncode([interrupted.toJson()]));
     final restored = DownloadManager();
     await restored.init(directory: dir);
     expect(restored.tasks.single.status, DownloadStatus.paused);
+    expect(restored.tasks.single.error, isNot(contains('https://')));
     await restored.shutdown();
   });
 }

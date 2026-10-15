@@ -18,6 +18,8 @@ class DownloadTask {
   int segmentsTotal;
   int position;
   String validator;
+  bool danmakuCached;
+  bool danmakuCaching;
   DownloadTask(
       {required this.bangumiId,
       required this.episode,
@@ -35,6 +37,8 @@ class DownloadTask {
       this.segmentsTotal = 0,
       this.position = 0,
       this.validator = '',
+      this.danmakuCached = false,
+      this.danmakuCaching = false,
       String? key})
       : key = key ?? '${bangumiId}_${episode}_$line';
   double? get progress => segmentsTotal > 0
@@ -60,6 +64,7 @@ class DownloadTask {
         'segmentsTotal': segmentsTotal,
         'position': position,
         'validator': validator,
+        'danmakuCached': danmakuCached,
       };
   factory DownloadTask.fromJson(Map<String, dynamic> j) => DownloadTask(
         key: j['key'],
@@ -79,5 +84,6 @@ class DownloadTask {
         segmentsTotal: j['segmentsTotal'] ?? 0,
         position: j['position'] ?? 0,
         validator: j['validator'] ?? '',
+        danmakuCached: j['danmakuCached'] ?? false,
       );
 }
