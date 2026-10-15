@@ -1,6 +1,6 @@
-# AniCh 离线版
+# AniCh Pro
 
-基于 AniCh 1.0.0，新增可实际使用的离线缓存。Android 包名 `io.github.upwon.anich.offline`，应用名「AniCh 离线版」，与原版同时安装，数据分别保存。
+基于 AniCh 1.0.0，新增可实际使用的离线缓存。Android 包名 `io.github.upwon.anich.offline`，应用名「AniCh Pro」，与原版同时安装，数据分别保存。
 
 ## 下载与使用
 
