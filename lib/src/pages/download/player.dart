@@ -12,7 +12,9 @@ import 'package:xs/src/offline/download_manager.dart';
 import 'package:xs/src/offline/download_task.dart';
 import 'package:xs/src/utils/color.dart';
 import 'package:xs/src/widgets/danmaku_settings/storage.dart';
+import 'package:xs/src/widgets/danmaku_settings/view.dart';
 import 'package:xs/src/widgets/danmaku_shield/storage.dart';
+import 'package:xs/src/widgets/danmaku_shield/view.dart';
 import 'package:xs/src/widgets/ns_danmaku/danmaku_controller.dart';
 import 'package:xs/src/widgets/ns_danmaku/danmaku_view.dart';
 import 'package:xs/src/widgets/ns_danmaku/models/danmaku_item.dart';
@@ -224,6 +226,92 @@ class _OfflinePlayerPageState extends State<OfflinePlayerPage> {
         entering ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge);
   }
 
+  Future<void> _showDanmakuSettings() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: .72,
+        minChildSize: .45,
+        maxChildSize: .95,
+        builder: (context, scrollController) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text('弹幕设置',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.w600)),
+                  ),
+                  IconButton(
+                    tooltip: '关闭',
+                    onPressed: () => Navigator.pop(sheetContext),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.only(bottom: 24),
+                children: [
+                  DanmakuSettingsView(
+                    danmakuController: danmakuController,
+                    showExternalSources: false,
+                    onDanmakuEnableChanged: (enabled) {
+                      if (!mounted) return;
+                      setState(() => showDanmaku = enabled);
+                      if (enabled) {
+                        danmakuIndex = _lowerBound(
+                            player.state.position.inMilliseconds / 1000);
+                      } else {
+                        danmakuController?.clear();
+                      }
+                    },
+                    onTapDanmakuShield: () {
+                      Navigator.pop(sheetContext);
+                      showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        useSafeArea: true,
+                        builder: (_) => DraggableScrollableSheet(
+                          expand: false,
+                          initialChildSize: .6,
+                          minChildSize: .4,
+                          maxChildSize: .9,
+                          builder: (context, scrollController) => Column(
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Text('关键词屏蔽',
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600)),
+                              ),
+                              Expanded(
+                                child: DanmakuShieldView.builddanmakuShieldView(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    _scheduleHide();
+  }
+
   String _time(Duration value) {
     String two(int n) => n.toString().padLeft(2, '0');
     final hours = value.inHours;
@@ -406,6 +494,12 @@ class _OfflinePlayerPageState extends State<OfflinePlayerPage> {
               color: Colors.white,
               icon: Icon(fullScreen ? Icons.fullscreen_exit : Icons.fullscreen),
               onPressed: _toggleFullScreen,
+            ),
+            IconButton(
+              tooltip: '弹幕设置',
+              color: Colors.white,
+              icon: const Icon(Icons.tune),
+              onPressed: _showDanmakuSettings,
             ),
           ]),
         ]),

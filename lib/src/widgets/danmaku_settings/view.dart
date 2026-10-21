@@ -34,10 +34,14 @@ class DanmakuSettingsView extends StatelessWidget {
   final Function()? onTapDanmakuShield;
   final PlayerController? playerController;
   final DanmakuController? danmakuController;
+  final ValueChanged<bool>? onDanmakuEnableChanged;
+  final bool showExternalSources;
   const DanmakuSettingsView({
     this.onTapDanmakuShield,
     this.danmakuController,
     this.playerController,
+    this.onDanmakuEnableChanged,
+    this.showExternalSources = true,
     super.key,
   });
 
@@ -86,6 +90,7 @@ class DanmakuSettingsView extends StatelessWidget {
                   onChanged: (e) {
                     playerController?.showDanmakuState.value = e;
                     DanmakuSettingsStorage.setDanmakuEnable(e);
+                    onDanmakuEnableChanged?.call(e);
                   },
                 ),
               ),
@@ -161,14 +166,14 @@ class DanmakuSettingsView extends StatelessWidget {
             ],
           ),
         ),
-        Padding(
+        if (showExternalSources) Padding(
           padding: AppStyle.edgeInsetsA12.copyWith(top: 12),
           child: Text(
             '外部弹幕',
             style: Get.textTheme.titleSmall,
           ),
         ),
-        SettingsCard(
+        if (showExternalSources) SettingsCard(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
