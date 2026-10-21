@@ -107,7 +107,7 @@ class MyApp extends StatelessWidget {
               // splashColor: Colors.black,
               scaffoldBackgroundColor: Colors.black,
               useMaterial3: true),
-          initialRoute: '/',
+          initialRoute: '/bangumi',
           getPages: AppRoute.pages,
           defaultTransition: Transition.noTransition,
           scrollBehavior: AppScrollBehavior(),

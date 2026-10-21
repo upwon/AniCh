@@ -96,7 +96,7 @@ class SearchPage extends StatelessWidget {
                                                 placeholder:
                                                     controller.keyword.value,
                                                 searchType:
-                                                    controller.searchType,
+                                                    controller.searchType.value,
                                               ),
                                               closeWindowButton(
                                                   positioned: false,

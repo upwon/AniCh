@@ -96,8 +96,8 @@ class HomePage extends StatelessWidget {
                                           child: Row(
                                             children: [
                                               const CustomSearchBar(
-                                                placeholder: '搜索插画或COSPLAY',
-                                                searchType: SearchType.picture,
+                                                placeholder: '搜索番剧',
+                                                searchType: SearchType.bangumi,
                                               ),
                                               closeWindowButton(
                                                   positioned: false,
@@ -156,22 +156,7 @@ class HomePage extends StatelessWidget {
                 SlideTransition(
                   position: Tween(begin: Offset.zero, end: const Offset(0, 1.0))
                       .animate(controller.animationController),
-                  child: NavBar(
-                    children: [
-                      NavItem(
-                          icon: Icons.movie,
-                          title: '番剧',
-                          onTap: () => Get.toNamed('/bangumi')),
-                      NavItem(
-                          icon: Icons.download_for_offline,
-                          title: '缓存',
-                          onTap: () => Get.toNamed('/download')),
-                      NavItem(
-                          icon: Icons.person,
-                          title: '我的',
-                          onTap: () => Get.toNamed('/profile')),
-                    ],
-                  ),
+                  child: const AppMainNavBar(selectedRoute: '/'),
                 )
               ],
             ),

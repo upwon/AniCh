@@ -1,10 +1,19 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class NavItem {
-  const NavItem({required this.icon, required this.title, required this.onTap});
+  const NavItem({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.selected = false,
+  });
   final IconData icon;
-  final Function onTap;
+  final VoidCallback onTap;
   final String title;
+  final bool selected;
 }
 
 class NavBar extends StatefulWidget {
@@ -26,11 +35,9 @@ class _NavBar extends State<NavBar> {
       alignment: Alignment.bottomCenter,
       children: [
         Container(
-          // width: 200,
-          // height: 65,
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
-          margin:
-              const EdgeInsets.only(top: 25, right: 25, left: 25, bottom: 25),
+          width: math.min(MediaQuery.sizeOf(context).width - 32, 420),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 7),
+          margin: const EdgeInsets.only(top: 20, right: 16, left: 16, bottom: 22),
           decoration: BoxDecoration(
               color: Theme.of(context).scaffoldBackgroundColor,
               borderRadius: BorderRadius.circular(50),
@@ -41,33 +48,31 @@ class _NavBar extends State<NavBar> {
                     spreadRadius: 10)
               ]),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
-            mainAxisAlignment: MainAxisAlignment.center,
             children: widget.children.map((item) {
-              // bool isSelected = Get.currentRoute == item.name;
-              return Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(100),
-                  onTap: () {
-                    item.onTap();
-                  },
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        Container(
-                          alignment: Alignment.center,
-                          margin: const EdgeInsets.only(
-                              top: 0, bottom: 0, left: 20, right: 20),
-                          child: Icon(item.icon, color: Colors.grey),
-                        ),
-                        Text(
-                          item.title,
-                          style:
-                              const TextStyle(color: Colors.grey, fontSize: 10),
-                        )
-                      ],
+              final color = item.selected
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.grey;
+              return Expanded(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(100),
+                    onTap: item.onTap,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(item.icon, color: color),
+                          Text(
+                            item.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: color, fontSize: 10),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -78,4 +83,48 @@ class _NavBar extends State<NavBar> {
       ],
     );
   }
+}
+
+class AppMainNavBar extends StatelessWidget {
+  const AppMainNavBar({super.key, required this.selectedRoute});
+
+  final String selectedRoute;
+
+  void _navigate(String route) {
+    if (Get.currentRoute != route) Get.offAllNamed(route);
+  }
+
+  @override
+  Widget build(BuildContext context) => NavBar(children: [
+        NavItem(
+          icon: Icons.photo_library_outlined,
+          title: '图片',
+          selected: selectedRoute == '/',
+          onTap: () => _navigate('/'),
+        ),
+        NavItem(
+          icon: Icons.movie_outlined,
+          title: '番剧',
+          selected: selectedRoute == '/bangumi',
+          onTap: () => _navigate('/bangumi'),
+        ),
+        NavItem(
+          icon: Icons.download_for_offline_outlined,
+          title: '缓存',
+          selected: selectedRoute == '/download',
+          onTap: () => _navigate('/download'),
+        ),
+        NavItem(
+          icon: Icons.history,
+          title: '历史',
+          selected: selectedRoute == '/play_history',
+          onTap: () => _navigate('/play_history'),
+        ),
+        NavItem(
+          icon: Icons.person_outline,
+          title: '我的',
+          selected: selectedRoute == '/profile',
+          onTap: () => _navigate('/profile'),
+        ),
+      ]);
 }

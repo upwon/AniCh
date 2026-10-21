@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:xs/src/offline/download_manager.dart';
 import 'package:xs/src/offline/download_task.dart';
+import 'package:xs/src/widgets/navbar.dart';
 
 String formatBytes(int bytes) => bytes >= 1024 * 1024 * 1024
     ? '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB'
@@ -15,6 +16,8 @@ class DownloadPage extends StatelessWidget {
     return DefaultTabController(
         length: 2,
         child: Scaffold(
+          bottomNavigationBar:
+              const AppMainNavBar(selectedRoute: '/download'),
           appBar: AppBar(
               title: const Text('离线缓存'),
               bottom: const TabBar(tabs: [

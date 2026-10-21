@@ -96,13 +96,52 @@ class _SearchPanelPageState extends State<SearchPanelPage> with RouteAware {
               ),
             ),
           ))),
-      body: const SingleChildScrollView(
-        child: Column(
+      body: Obx(() {
+        final history = _searchController.historyList;
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            SizedBox(height: 12),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text('最近搜索',
+                      style:
+                          TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                ),
+                if (history.isNotEmpty)
+                  TextButton.icon(
+                    onPressed: _searchController.clearHistory,
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('清空'),
+                  ),
+              ],
+            ),
+            if (history.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: Text(
+                  '搜索记录保存在本机，登录与否都可以使用。',
+                  style: TextStyle(color: Theme.of(context).hintColor),
+                ),
+              )
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final keyword in history.cast<String>())
+                    InputChip(
+                      label: Text(keyword),
+                      onPressed: () =>
+                          _searchController.onClickKeyword(keyword),
+                      onDeleted: () =>
+                          _searchController.removeHistory(keyword),
+                    ),
+                ],
+              ),
           ],
-        ),
-      ),
+        );
+      }),
     );
   }
 }

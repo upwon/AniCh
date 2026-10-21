@@ -34,7 +34,7 @@ class BangumiController extends GetxController
   ];
 
   late TabController tabController;
-  RxInt tabIndex = 1.obs;
+  RxInt tabIndex = 0.obs;
 
   late final AnimationController animationController;
 
@@ -43,7 +43,7 @@ class BangumiController extends GetxController
     super.onInit();
 
     tabController =
-        TabController(vsync: this, length: tabs.length, initialIndex: 1);
+        TabController(vsync: this, length: tabs.length, initialIndex: 0);
     tabController.addListener(() {
       tabIndex(tabController.index);
     });

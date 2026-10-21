@@ -114,14 +114,7 @@ class ProfilePage extends StatelessWidget {
                 SlideTransition(
                   position: Tween(begin: Offset.zero, end: const Offset(0, 1.0))
                       .animate(controller.animationController),
-                  child: NavBar(
-                    children: [
-                      NavItem(
-                          icon: Icons.arrow_back,
-                          title: '返回',
-                          onTap: () => Get.back())
-                    ],
-                  ),
+                  child: const AppMainNavBar(selectedRoute: '/profile'),
                 )
               ],
             ),

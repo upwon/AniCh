@@ -28,19 +28,20 @@ class SearchPageController extends GetxController
 
   late final AnimationController animationController;
 
-  late SearchType searchType;
+  late Rx<SearchType> searchType;
   RxString keyword = ''.obs;
 
   @override
   void onInit() {
     super.onInit();
-    searchType = Get.arguments['type'];
+    searchType = (Get.arguments['type'] as SearchType).obs;
     keyword(Get.arguments['keyword']);
 
     tabController = TabController(
-        vsync: this, length: tabs.length, initialIndex: searchType.index);
+        vsync: this, length: tabs.length, initialIndex: searchType.value.index);
     tabController.addListener(() {
       tabIndex(tabController.index);
+      searchType.value = SearchType.values[tabController.index];
     });
 
     animationController = AnimationController(

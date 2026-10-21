@@ -64,6 +64,13 @@ class PlayHistoryPage extends StatelessWidget {
                     slivers: [
                       SliverPadding(
                           padding: AppStyle.edgeInsetsA12.copyWith(top: 50)),
+                          if (PlayHistoryStorage.history.isEmpty)
+                            const SliverFillRemaining(
+                              hasScrollBody: false,
+                              child: Center(
+                                child: Text('还没有观看记录，播放过的番剧会保存在本机。'),
+                              ),
+                            ),
                       SliverToBoxAdapter(
                         child: ListView.builder(
                           shrinkWrap: true,
@@ -233,14 +240,7 @@ class PlayHistoryPage extends StatelessWidget {
                 SlideTransition(
                   position: Tween(begin: Offset.zero, end: const Offset(0, 1.0))
                       .animate(controller.animationController),
-                  child: NavBar(
-                    children: [
-                      NavItem(
-                          icon: Icons.arrow_back,
-                          title: '返回',
-                          onTap: () => Get.back()),
-                    ],
-                  ),
+                  child: const AppMainNavBar(selectedRoute: '/play_history'),
                 )
               ],
             ),

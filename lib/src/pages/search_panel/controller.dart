@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:xs/src/pages/search_panel/search_history_storage.dart';
 import 'package:xs/src/pages/search/models/search_type.dart';
 
 class SearchPanelController extends GetxController
@@ -8,7 +9,6 @@ class SearchPanelController extends GetxController
   Rx<TextEditingController> controller = TextEditingController().obs;
   RxString searchKeyWord = ''.obs;
   String hintText = '搜索';
-  List historyCacheList = [];
   RxList historyList = [].obs;
   SearchType searchType = SearchType.picture;
 
@@ -26,29 +26,31 @@ class SearchPanelController extends GetxController
         searchKeyWord.value = hintText;
       }
     }
-    historyList.value = historyCacheList;
+    historyList.assignAll(SearchHistoryStorage.load(searchType));
   }
 
   // 搜索
   void submit() {
-    // ignore: unrelated_type_equality_checks
-    if (searchKeyWord == '') {
-      return;
-    }
-    List arr = historyCacheList.where((e) => e != searchKeyWord.value).toList();
-    arr.insert(0, searchKeyWord.value);
-    historyCacheList = arr;
-
-    historyList.value = historyCacheList;
-    // 手动刷新
-    historyList.refresh();
-    // histiryWord.put('cacheList', historyCacheList);
+    final keyword = searchKeyWord.value.trim();
+    if (keyword.isEmpty) return;
+    searchKeyWord.value = keyword;
+    controller.value.text = keyword;
+    historyList.assignAll(SearchHistoryStorage.add(searchType, keyword));
     searchFocusNode.unfocus();
     Get.offAndToNamed(
       '/search',
-      arguments: {'type': searchType, 'keyword': searchKeyWord.value},
+      arguments: {'type': searchType, 'keyword': keyword},
       // parameters: {'type': 'bangumi', 'keyword': searchKeyWord.value}
     );
+  }
+
+  void removeHistory(String keyword) {
+    historyList.assignAll(SearchHistoryStorage.remove(searchType, keyword));
+  }
+
+  void clearHistory() {
+    SearchHistoryStorage.clear(searchType);
+    historyList.clear();
   }
 
   // 点击热搜关键词
