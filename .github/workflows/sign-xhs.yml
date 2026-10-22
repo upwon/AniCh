@@ -1,0 +1,123 @@
+name: Sign XHS APK with existing certificate
+
+on:
+  push:
+    branches: ['codex/xhs-signing']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: upwon/XHS_Downloader_Android
+          ref: c2261e9b5e944e648a027ce0ae30c0d7ce11b9ae
+          persist-credentials: false
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build unsigned release without signing secrets
+        run: bash ./gradlew :app:assembleRelease --no-daemon
+      - name: Record source and unsigned APK
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release-unsigned.apk dist/
+          git rev-parse HEAD > dist/SOURCE_COMMIT.txt
+          (cd dist && sha256sum app-release-unsigned.apk > SHA256SUMS-unsigned.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xhs-unsigned-${{ github.run_id }}
+          path: dist/
+          if-no-files-found: error
+
+  sign:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/download-artifact@v4
+        with:
+          name: xhs-unsigned-${{ github.run_id }}
+          path: input
+      - name: Validate application identity and release mode
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUILD_TOOLS=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          test -x "$BUILD_TOOLS/apksigner"
+          echo "BUILD_TOOLS=$BUILD_TOOLS" >> "$GITHUB_ENV"
+          mkdir -p dist
+          "$BUILD_TOOLS/aapt" dump badging input/app-release-unsigned.apk > dist/package-info.txt
+          grep -E "^package: name='com.upwon.xhsdn' versionCode='26' versionName='1.4.2'" dist/package-info.txt
+          if grep -q '^application-debuggable' dist/package-info.txt; then
+            echo '::error::Refusing a debuggable APK'; exit 1
+          fi
+          (cd input && sha256sum --check SHA256SUMS-unsigned.txt)
+          cp input/SOURCE_COMMIT.txt dist/
+      - name: Sign with AniCh existing release key
+        env:
+          SIGNING_KEY: ${{ secrets.BASE_64_SIGNING_KEY }}
+          SIGNING_PROPERTIES: ${{ secrets.LOCAL_PROPERTIES }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SIGNING_KEY" && test -n "$SIGNING_PROPERTIES" || { echo '::error::Existing signing secrets are unavailable'; exit 1; }
+          umask 077
+          export SIGNING_DIR
+          SIGNING_DIR=$(mktemp -d "$RUNNER_TEMP/xhs-signing.XXXXXX")
+          trap 'rm -rf "$SIGNING_DIR"; rm -f "$RUNNER_TEMP/XhsSigningProperties.java"' EXIT
+          printf '%s' "$SIGNING_KEY" | base64 --decode > "$SIGNING_DIR/release.jks"
+          cat > "$RUNNER_TEMP/XhsSigningProperties.java" <<'JAVA'
+          import java.io.StringReader;
+          import java.nio.file.*;
+          import java.util.Properties;
+          class XhsSigningProperties {
+              public static void main(String[] args) throws Exception {
+                  Properties properties = new Properties();
+                  properties.load(new StringReader(System.getenv("SIGNING_PROPERTIES")));
+                  Path directory = Path.of(System.getenv("SIGNING_DIR"));
+                  for (String name : new String[]{"storePassword", "keyPassword", "keyAlias"}) {
+                      String value = properties.getProperty(name, properties.getProperty("signingConfig." + name));
+                      if (value == null || value.isEmpty()) throw new IllegalStateException("Missing signing property: " + name);
+                      Files.writeString(directory.resolve(name), value);
+                  }
+              }
+          }
+          JAVA
+          java "$RUNNER_TEMP/XhsSigningProperties.java"
+          "$BUILD_TOOLS/apksigner" sign \
+            --ks "$SIGNING_DIR/release.jks" \
+            --ks-key-alias "$(cat "$SIGNING_DIR/keyAlias")" \
+            --ks-pass "file:$SIGNING_DIR/storePassword" \
+            --key-pass "file:$SIGNING_DIR/keyPassword" \
+            --out dist/xhs-upwon-1.4.2-release.apk \
+            input/app-release-unsigned.apk
+      - name: Verify certificate matches AniCh
+        env:
+          EXPECTED_CERT: d6660edec3cfd4d5ab2c35c5bcbfeb406a4e0cc332a00bf34c01fc61707de44d
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs dist/xhs-upwon-1.4.2-release.apk | tee dist/signing-certificate.txt
+          ACTUAL=$(awk '/certificate SHA-256 digest:/ {print $NF; exit}' dist/signing-certificate.txt | tr 'A-F' 'a-f' | tr -d ':')
+          test "$ACTUAL" = "$EXPECTED_CERT"
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xhs-upwon-1.4.2-signed-release
+          path: dist/
+          if-no-files-found: error
