@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           repository: upwon/XHS_Downloader_Android
-          ref: 73429e1efb6e051d12bc3d43fb122b5cb8e63b69
+          ref: fce33b82869882c24cb1b0bc20ab275acecdab6f
           persist-credentials: false
       - uses: actions/setup-java@v5
         with:
