@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           repository: upwon/XHS_Downloader_Android
-          ref: 55ea586cb2186202458b17c0bd2b5159e8f95602
+          ref: dbe537309f0994e5ba4e281a2a900c315246da97
           persist-credentials: false
       - uses: actions/setup-java@v5
         with:
@@ -62,7 +62,7 @@ jobs:
           echo "BUILD_TOOLS=$BUILD_TOOLS" >> "$GITHUB_ENV"
           mkdir -p dist
           "$BUILD_TOOLS/aapt" dump badging input/app-release-unsigned.apk > dist/package-info.txt
-          grep -E "^package: name='com.upwon.xhsdn' versionCode='29' versionName='1.4.5'" dist/package-info.txt
+          grep -E "^package: name='com.upwon.xhsdn' versionCode='30' versionName='1.4.6'" dist/package-info.txt
           if grep -q '^application-debuggable' dist/package-info.txt; then
             echo '::error::Refusing a debuggable APK'; exit 1
           fi
@@ -104,7 +104,7 @@ jobs:
             --ks-key-alias "$(cat "$SIGNING_DIR/keyAlias")" \
             --ks-pass "file:$SIGNING_DIR/storePassword" \
             --key-pass "file:$SIGNING_DIR/keyPassword" \
-            --out dist/xhs-upwon-1.4.5-release.apk \
+            --out dist/xhs-upwon-1.4.6-release.apk \
             input/app-release-unsigned.apk
       - name: Verify certificate matches AniCh
         env:
@@ -112,12 +112,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs dist/xhs-upwon-1.4.5-release.apk | tee dist/signing-certificate.txt
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs dist/xhs-upwon-1.4.6-release.apk | tee dist/signing-certificate.txt
           ACTUAL=$(awk '/certificate SHA-256 digest:/ {print $NF; exit}' dist/signing-certificate.txt | tr 'A-F' 'a-f' | tr -d ':')
           test "$ACTUAL" = "$EXPECTED_CERT"
           (cd dist && sha256sum *.apk > SHA256SUMS.txt)
       - uses: actions/upload-artifact@v4
         with:
-          name: xhs-upwon-1.4.5-signed-release
+          name: xhs-upwon-1.4.6-signed-release
           path: dist/
           if-no-files-found: error
